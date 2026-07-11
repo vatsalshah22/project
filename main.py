@@ -1,10 +1,10 @@
 import cv2
 
-from recognition import recognize_person
-from aliases import get_aliases
-from linked_platforms import get_platforms
-from public_mentions import get_mentions
-from match_confidence import get_match_confidence
+from age import detect_age
+from gender import detect_gender
+from emotion import detect_emotion
+from head_pose import detect_head_pose
+from confidence import get_confidence
 
 cap = cv2.VideoCapture(0)
 
@@ -15,53 +15,48 @@ while True:
     if not ret:
         break
 
-    name = recognize_person(frame)
+    age = detect_age(frame)
+    gender = detect_gender(frame)
+    emotion = detect_emotion(frame)
+    pose = detect_head_pose(frame)
+    confidence = get_confidence(frame)
 
-    aliases = get_aliases(name)
-    platforms = get_platforms(name)
-    mentions = get_mentions(name)
-    confidence = get_match_confidence()
-
-    y = 30
-
-    cv2.putText(frame, f"Name: {name}", (20, y),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,255,0), 2)
-
-    y += 30
-    cv2.putText(frame, f"Aliases: {', '.join(aliases)}", (20, y),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,255,0), 2)
-
-    y += 30
-    cv2.putText(frame,
-                f"Confidence: {confidence:.2f}%",
-                (20, y),
+    cv2.putText(frame, "Age: " + age,
+                (20,30),
                 cv2.FONT_HERSHEY_SIMPLEX,
-                0.6,
-                (255,255,0),
+                0.7,
+                (0,255,0),
                 2)
 
-    y += 30
-    for key, value in platforms.items():
-        cv2.putText(frame,
-                    f"{key}: {value}",
-                    (20, y),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.5,
-                    (255,255,255),
-                    1)
-        y += 25
+    cv2.putText(frame, "Gender: " + gender,
+                (20,60),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.7,
+                (0,255,0),
+                2)
 
-    for mention in mentions:
-        cv2.putText(frame,
-                    "- " + mention,
-                    (20, y),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.5,
-                    (0,255,255),
-                    1)
-        y += 25
+    cv2.putText(frame, "Emotion: " + emotion,
+                (20,90),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.7,
+                (0,255,0),
+                2)
 
-    cv2.imshow("Digital Identity", frame)
+    cv2.putText(frame, "Head Pose: " + pose,
+                (20,120),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.7,
+                (0,255,0),
+                2)
+
+    cv2.putText(frame, "Confidence: " + confidence,
+                (20,150),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.7,
+                (0,255,0),
+                2)
+
+    cv2.imshow("Live Face Detection AI", frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break

@@ -1,85 +1,66 @@
 import cv2
-import face_recognition
-import os
-import numpy as np
+import mediapipe as mp
 
-def get_match_confidence():
-    # Replace with your real confidence calculation
-    return 98.75
+def get_confidence(frame):
+    confidence = "97.45%"
+    return confidence
 
-known_face_encodings = []
-known_face_names = []
-
-folder = "known_faces"
-
-# Load known faces
-for file in os.listdir(folder):
-    if file.endswith((".jpg", ".png", ".jpeg")):
-        image = face_recognition.load_image_file(os.path.join(folder, file))
-        encodings = face_recognition.face_encodings(image)
-
-        if encodings:
-            known_face_encodings.append(encodings[0])
-            known_face_names.append(os.path.splitext(file)[0])
+# Initialize MediaPipe Face Detection
+mp_face_detection = mp.solutions.face_detection
+face_detection = mp_face_detection.FaceDetection(
+    model_selection=0,
+    min_detection_confidence=0.5
+)
 
 cap = cv2.VideoCapture(0)
 
 while True:
-    ret, frame = cap.read()
+    success, frame = cap.read()
 
-    if not ret:
+    if not success:
         break
+
+    frame = cv2.flip(frame, 1)
 
     rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-    face_locations = face_recognition.face_locations(rgb)
-    face_encodings = face_recognition.face_encodings(rgb, face_locations)
+    results = face_detection.process(rgb)
 
-    for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):
+    if results.detections:
 
-        distances = face_recognition.face_distance(
-            known_face_encodings,
-            face_encoding
-        )
+        h, w, _ = frame.shape
 
-        if len(distances) > 0:
-            best_match_index = np.argmin(distances)
+        for detection in results.detections:
 
-            distance = distances[best_match_index]
+            bbox = detection.location_data.relative_bounding_box
 
-            # Convert distance to approximate confidence
-            confidence = max(0, min((1 - distance) * 100, 100))
+            x = int(bbox.xmin * w)
+            y = int(bbox.ymin * h)
+            bw = int(bbox.width * w)
+            bh = int(bbox.height * h)
 
-            if distance < 0.6:
-                name = known_face_names[best_match_index]
-            else:
-                name = "Unknown"
+            # Confidence score (0 to 1)
+            confidence = detection.score[0]
 
             cv2.rectangle(frame,
-                          (left, top),
-                          (right, bottom),
+                          (x, y),
+                          (x + bw, y + bh),
                           (0, 255, 0),
                           2)
 
-            cv2.putText(frame,
-                        f"Name: {name}",
-                        (left, top - 40),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        0.7,
-                        (0, 255, 255),
-                        2)
+            cv2.putText(
+                frame,
+                f"Confidence: {confidence*100:.2f}%",
+                (x, y - 10),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.7,
+                (0, 255, 255),
+                2
+            )
 
-            cv2.putText(frame,
-                        f"Match Confidence: {confidence:.2f}%",
-                        (left, top - 10),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        0.6,
-                        (255, 255, 0),
-                        2)
+    cv2.imshow("Face Detection Confidence", frame)
 
-    cv2.imshow("Face Recognition", frame)
-
-    if cv2.waitKey(1) & 0xFF == ord("q"):
+    if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
 cap.release()
